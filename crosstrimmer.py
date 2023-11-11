@@ -77,10 +77,8 @@ def crosstrimmer(use_argparse=True, **ka):
     ka['in1'] = ka['content']
     ka['in2'] = ka['timing']
 
-    # We can't use the real 'take' arg because it will interfere with subsequent reads.
-    # TODO: Fix this in CrossLooper and then use real 'take' arg here.
-    ka['loop-search-len'] = ka['take']
-    ka['take'] = None
+    # We use 'take' instead of 'loop-search-len' to improve speed.
+    ka['loop-search-len'] = -1
 
     verbose = ka['verbose']
 
@@ -126,10 +124,10 @@ def crosstrimmer(use_argparse=True, **ka):
 
         print(f'Zero offset is {zero_offset:.6f} seconds')
 
-        synced_start_sample_rate, synced_start_data = crosslooper.normalize_denoise(Path(tempdir) / 'synced-start.flac', 'out')
+        synced_start_sample_rate, synced_start_data = crosslooper.normalize_denoise(Path(tempdir) / 'synced-start.flac', 'out', allow_take=False)
         len_synced_start = len(synced_start_data) / synced_start_sample_rate
 
-        timing_sample_rate, timing_data = crosslooper.normalize_denoise(timing_path, 'out')
+        timing_sample_rate, timing_data = crosslooper.normalize_denoise(timing_path, 'out', allow_take=False)
         len_timing = len(timing_data) / timing_sample_rate
 
         if len_synced_start > len_timing:
@@ -155,7 +153,7 @@ def crosstrimmer(use_argparse=True, **ka):
                            stderr=(None if verbose else subprocess.DEVNULL),
                            check=True)
 
-        synced_all_sample_rate, synced_all_data = crosslooper.normalize_denoise(Path(tempdir) / 'synced-all.flac', 'out')
+        synced_all_sample_rate, synced_all_data = crosslooper.normalize_denoise(Path(tempdir) / 'synced-all.flac', 'out', allow_take=False)
         len_synced_all = len(synced_all_data) / synced_all_sample_rate
 
         zero_offset = len_synced_all - len_timing
