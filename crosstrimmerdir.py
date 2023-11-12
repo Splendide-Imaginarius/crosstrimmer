@@ -104,6 +104,7 @@ def crosstrimmer_dir(**ka):
     ka['loop-enable-seconds-tags'] = False
     ka['samples'] = True
     ka['skip'] = False
+    ka['quiet'] = True
 
     parser = cli_parser(**ka)
     args = parser.parse_args().__dict__

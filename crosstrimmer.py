@@ -44,6 +44,13 @@ def cli_parser(**ka):
             default=10.0,
             help='Take X seconds of the inputs to look at when trimming intro. ' +
                  '(default: 10)')
+    if 'quiet' not in ka:
+        parser.add_argument(
+            '-q', '--quiet',
+            dest='quiet',
+            action='store_true',
+            type=bool,
+            help='Suppress informational output.')
 
     return parser
 
@@ -81,6 +88,7 @@ def crosstrimmer(use_argparse=True, **ka):
     ka['loop-search-len'] = -1
 
     verbose = ka['verbose']
+    quiet = ka['quiet']
 
     content_path = Path(ka['content'])
     timing_path = Path(ka['timing'])
@@ -94,10 +102,12 @@ def crosstrimmer(use_argparse=True, **ka):
     with tempfile.TemporaryDirectory() as tempdir:
         longer_intro_silence_path, offset, _ = crosslooper.file_offset(use_argparse=False, **ka)
 
-        print(f'"{longer_intro_silence_path}" has longer intro silence, offset is {offset:.12f} seconds')
+        if not quiet:
+            print(f'"{longer_intro_silence_path}" has longer intro silence, offset is {offset:.12f} seconds')
 
         if content_path == longer_intro_silence_path:
-            print(f'Cutting silence off of beginning of {content_path}')
+            if not quiet:
+                print(f'Cutting silence off of beginning of {content_path}')
 
             command = ['ffmpeg', '-i', str(content_path), '-af', f'atrim=start={offset:.12f}', str(Path(tempdir) / 'synced-start.flac')]
             subprocess.run(command,
@@ -105,7 +115,8 @@ def crosstrimmer(use_argparse=True, **ka):
                            stderr=(None if verbose else subprocess.DEVNULL),
                            check=True)
         else:
-            print(f'Adding silence to beginning of {content_path}')
+            if not quiet:
+                print(f'Adding silence to beginning of {content_path}')
 
             # ffmpeg floors the sample count when you pass seconds to adelay.
             # We prefer to round, so we do the math ourselves.
@@ -122,7 +133,8 @@ def crosstrimmer(use_argparse=True, **ka):
         ka['in2'] = Path(tempdir)/'synced-start.flac'
         _, zero_offset, _ = crosslooper.file_offset(use_argparse=False, **ka)
 
-        print(f'Zero offset is {zero_offset:.6f} seconds')
+        if not quiet:
+            print(f'Zero offset is {zero_offset:.6f} seconds')
 
         synced_start_sample_rate, synced_start_data = crosslooper.normalize_denoise(Path(tempdir) / 'synced-start.flac', 'out', allow_take=False)
         len_synced_start = len(synced_start_data) / synced_start_sample_rate
@@ -131,9 +143,9 @@ def crosstrimmer(use_argparse=True, **ka):
         len_timing = len(timing_data) / timing_sample_rate
 
         if len_synced_start > len_timing:
-            print(f'"{content_path}" has longer outro silence, offset is {len_synced_start-len_timing} seconds')
-
-            print(f'Cutting silence off of end of {content_path}')
+            if not quiet:
+                print(f'"{content_path}" has longer outro silence, offset is {len_synced_start-len_timing} seconds')
+                print(f'Cutting silence off of end of {content_path}')
 
             command = ['ffmpeg', '-i', str(Path(tempdir) / 'synced-start.flac'), '-af', f'atrim=end={len_timing:.12f}', str(Path(tempdir) / 'synced-all.flac')]
             subprocess.run(command,
@@ -141,9 +153,9 @@ def crosstrimmer(use_argparse=True, **ka):
                            stderr=(None if verbose else subprocess.DEVNULL),
                            check=True)
         else:
-            print(f'"{timing_path}" has longer outro silence, offset is {len_timing-len_synced_start} seconds')
-
-            print(f'Adding silence to end of {content_path}')
+            if not quiet:
+                print(f'"{timing_path}" has longer outro silence, offset is {len_timing-len_synced_start} seconds')
+                print(f'Adding silence to end of {content_path}')
 
             offset = len_timing - len_synced_start
 
@@ -158,7 +170,8 @@ def crosstrimmer(use_argparse=True, **ka):
 
         zero_offset = len_synced_all - len_timing
 
-        print(f'Zero offset is {zero_offset:.6f} seconds')
+        if not quiet:
+            print(f'Zero offset is {zero_offset:.6f} seconds')
 
         shutil.copyfile(Path(tempdir) / 'synced-all.flac', out_path)
 
