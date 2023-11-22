@@ -49,7 +49,6 @@ def cli_parser(**ka):
             '-q', '--quiet',
             dest='quiet',
             action='store_true',
-            type=bool,
             help='Suppress informational output.')
 
     return parser
