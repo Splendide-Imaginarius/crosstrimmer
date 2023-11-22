@@ -131,9 +131,12 @@ def crosstrimmer(use_argparse=True, **ka):
         ka['in1'] = timing_path
         ka['in2'] = Path(tempdir)/'synced-start.flac'
         _, zero_offset, _ = crosslooper.file_offset(use_argparse=False, **ka)
+        zero_offset_samples = round(zero_offset * content_sample_rate)
 
         if not quiet:
-            print(f'Zero offset is {zero_offset:.6f} seconds')
+            print(f'Zero start offset is {zero_offset:.6f} seconds')
+        if zero_offset_samples != 0:
+            raise Exception(f'{content_path}: Zero start offset is {zero_offset:.6f} seconds')
 
         synced_start_sample_rate, synced_start_data = crosslooper.normalize_denoise(Path(tempdir) / 'synced-start.flac', 'out', allow_take=False)
         len_synced_start = len(synced_start_data) / synced_start_sample_rate
@@ -168,9 +171,12 @@ def crosstrimmer(use_argparse=True, **ka):
         len_synced_all = len(synced_all_data) / synced_all_sample_rate
 
         zero_offset = len_synced_all - len_timing
+        zero_offset_samples = round(zero_offset * content_sample_rate)
 
         if not quiet:
-            print(f'Zero offset is {zero_offset:.6f} seconds')
+            print(f'Zero len offset is {zero_offset:.6f} seconds')
+        if zero_offset_samples != 0:
+            raise Exception(f'{content_path}: Zero len offset is {zero_offset:.6f} seconds')
 
         shutil.copyfile(Path(tempdir) / 'synced-all.flac', out_path)
 
