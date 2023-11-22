@@ -98,6 +98,16 @@ def crosstrimmer(use_argparse=True, **ka):
 
     out_path = Path(ka['out'])
 
+    # Get content sample rate
+    command = ['ffprobe', '-v', 'quiet', '-select_streams', 'a', '-show_entries', 'stream=sample_rate', '-of', 'csv', str(content_path)]
+    content_sample_rate = subprocess.run(command,
+                                         capture_output=True,
+                                         check=True)
+    content_sample_rate = content_sample_rate.stdout
+    content_sample_rate = content_sample_rate.decode('utf-8')
+    content_sample_rate = content_sample_rate.removeprefix('stream,')
+    content_sample_rate = int(content_sample_rate)
+
     with tempfile.TemporaryDirectory() as tempdir:
         longer_intro_silence_path, offset, _ = crosslooper.file_offset(use_argparse=False, **ka)
 
@@ -119,8 +129,7 @@ def crosstrimmer(use_argparse=True, **ka):
 
             # ffmpeg floors the sample count when you pass seconds to adelay.
             # We prefer to round, so we do the math ourselves.
-            sample_rate, _ = crosslooper.normalize_denoise(content_path, 'out')
-            offset_samples = round(offset * sample_rate)
+            offset_samples = round(offset * content_sample_rate)
 
             command = ['ffmpeg', '-i', str(content_path), '-af', f'adelay=delays={offset_samples}S:all=1', str(Path(tempdir) / 'synced-start.flac')]
             subprocess.run(command,
@@ -138,8 +147,8 @@ def crosstrimmer(use_argparse=True, **ka):
         if zero_offset_samples != 0:
             raise Exception(f'{content_path}: Zero start offset is {zero_offset:.6f} seconds')
 
-        synced_start_sample_rate, synced_start_data = crosslooper.normalize_denoise(Path(tempdir) / 'synced-start.flac', 'out', allow_take=False)
-        len_synced_start = len(synced_start_data) / synced_start_sample_rate
+        _, synced_start_data = crosslooper.normalize_denoise(Path(tempdir) / 'synced-start.flac', 'out', allow_take=False)
+        len_synced_start = len(synced_start_data) / content_sample_rate
 
         timing_sample_rate, timing_data = crosslooper.normalize_denoise(timing_path, 'out', allow_take=False)
         len_timing = len(timing_data) / timing_sample_rate
