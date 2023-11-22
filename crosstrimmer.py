@@ -118,7 +118,11 @@ def crosstrimmer(use_argparse=True, **ka):
             if not quiet:
                 print(f'Cutting silence off of beginning of {content_path}')
 
-            command = ['ffmpeg', '-i', str(content_path), '-af', f'atrim=start={offset:.12f}', str(Path(tempdir) / 'synced-start.flac')]
+            # ffmpeg needs start_sample instead of start/start_pts because
+            # sometimes the input timestamps are irregular.
+            offset_samples = round(offset * content_sample_rate)
+            command = ['ffmpeg', '-i', str(content_path), '-af', f'atrim=start_sample={offset_samples:.12f}', str(Path(tempdir) / 'synced-start.flac')]
+
             subprocess.run(command,
                            stdout=(None if verbose else subprocess.DEVNULL),
                            stderr=(None if verbose else subprocess.DEVNULL),
