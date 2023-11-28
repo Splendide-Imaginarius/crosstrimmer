@@ -47,7 +47,6 @@ def cli_parser(**ka):
 def loop_process_run(input_file_queue, progress_queue, pbar_lock, process_num,
                      ka):
     tqdm.set_lock(pbar_lock)
-    single_pbar = tqdm(unit='audio_sec', position=process_num+1)
 
     while True:
         finished, content, timing, out = input_file_queue.get()
@@ -78,7 +77,7 @@ def loop_process_run(input_file_queue, progress_queue, pbar_lock, process_num,
         this_ka['timing'] = timing
         this_ka['out'] = out
 
-        crosstrimmer.crosstrimmer(use_argparse=False, pbar=single_pbar,
+        crosstrimmer.crosstrimmer(use_argparse=False,
                                   **this_ka)
 
         progress_queue.put(1)
