@@ -157,6 +157,13 @@ def crosstrimmer(use_argparse=True, **ka):
         timing_sample_rate, timing_data = crosslooper.normalize_denoise(timing_path, 'out', allow_take=False)
         len_timing = len(timing_data) / timing_sample_rate
 
+        if offset_samples == 0 and round((len_synced_start - len_timing) * content_sample_rate) == 0:
+            if not quiet:
+                print(f'"{content_path}" and "{timing_path}" have identical timing; short-circuiting')
+
+            shutil.copyfile(content_path, out_path)
+            return
+
         if len_synced_start > len_timing:
             if not quiet:
                 print(f'"{content_path}" has longer outro silence, offset is {len_synced_start-len_timing} seconds')
